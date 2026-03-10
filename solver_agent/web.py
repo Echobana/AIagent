@@ -16,11 +16,9 @@ app = FastAPI(title="Solver YAML Agent")
 def index() -> str:
     return f"""
     <html><body style='font-family:Arial;max-width:980px;margin:40px auto;'>
-      <h2>Solver YAML Agent</h2>
-      <p style='color:#444'>GUI для генерации YAML через локальные и облачные LLM API.</p>
-      <form method='post' action='/generate'>
+      <form id='generator-form' method='post' action='/generate'>
         <label>Request:</label><br>
-        <textarea name='request' rows='8' style='width:100%;'></textarea><br><br>
+        <textarea id='request' name='request' rows='8' style='width:100%;'></textarea><br><br>
 
         <label>Provider:</label><br>
         <input list='providers' name='provider' value='{DEFAULT_PROVIDER}' style='width:360px'/>
@@ -39,20 +37,40 @@ def index() -> str:
         <label>Model:</label>
         <input type='text' name='model' value='{DEFAULT_MODEL}' style='width:360px'/><br><br>
 
-        <label>API key (for cloud providers):</label>
-        <input type='password' name='api_key' style='width:480px' placeholder='api key'/><br><br>
+        <details>
+          <summary style='cursor:pointer'>Optional fields</summary>
+          <div style='padding-top:10px'>
+            <label>API key (for cloud providers):</label>
+            <input type='password' name='api_key' style='width:480px' placeholder='api key'/><br><br>
 
-        <label>Base URL (optional, required for unknown custom providers):</label>
-        <input type='text' name='base_url' style='width:480px' placeholder='https://your-provider.example/v1'/><br><br>
+            <label>Base URL (optional, required for unknown custom providers):</label>
+            <input type='text' name='base_url' style='width:480px' placeholder='https://your-provider.example/v1'/><br><br>
 
-        <label>Base YAML (optional):</label><br>
-        <textarea name='base_yaml' rows='12' style='width:100%;'></textarea><br><br>
+            <label>Base YAML (optional):</label><br>
+            <textarea name='base_yaml' rows='6' style='width:100%;'></textarea><br><br>
+          </div>
+        </details><br>
 
         <label>Output file name:</label>
         <input type='text' name='filename' value='generated_config.yaml'/><br><br>
 
         <button type='submit'>Generate</button>
       </form>
+      <script>
+        const form = document.getElementById('generator-form');
+        const requestField = document.getElementById('request');
+
+        form.addEventListener('submit', () => {{
+          requestField.value = '';
+        }});
+
+        requestField.addEventListener('keydown', (event) => {{
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {{
+            event.preventDefault();
+            form.requestSubmit();
+          }}
+        }});
+      </script>
     </body></html>
     """
 
