@@ -19,7 +19,7 @@ GENERATED_RESULTS: dict[str, dict[str, str]] = {}
 def index() -> str:
     return f"""
     <html><body style='font-family:Arial;max-width:980px;margin:40px auto;'>
-      <form id='generator-form' method='post' action='/generate'>
+      <form id='generator-form'>
         <label>Request:</label><br>
         <textarea id='request' name='request' rows='8' style='width:100%;'></textarea><br>
         <small style='color:#666'>Запуск генерации: Ctrl/Cmd + Enter</small><br><br>
@@ -75,10 +75,9 @@ def index() -> str:
 
           status.textContent = '⏳ Генерация запущена...';
           result.innerHTML = '';
-          requestField.value = '';
 
           try {{
-            const response = await fetch('/generate', {{
+            const response = await fetch('/api/generate', {{
               method: 'POST',
               body: formData,
             }});
@@ -89,6 +88,7 @@ def index() -> str:
               return;
             }}
 
+            requestField.value = '';
             status.textContent = '✅ Задача выполнена.';
             result.innerHTML = `<p>Файл сохранён: <code>${{payload.saved_to}}</code></p>
                                 <p><a href="/result/${{payload.result_id}}" target="_blank" rel="noopener noreferrer">Открыть YAML (опционально)</a></p>`;
@@ -108,47 +108,86 @@ def index() -> str:
     """
 
 
-@app.post("/generate", response_class=HTMLResponse)
+def _run_generation(
+    request: str,
+    provider: str,
+    model: str,
+    api_key: str,
+    base_url: str,
+    base_yaml: str,
+    filename: str,
+) -> tuple[dict, str, str]:
+    base_config = yaml.safe_load(base_yaml) if base_yaml.strip() else None
+    config = generate_config(
+        request,
+        base_config,
+        model=model,
+        provider=provider,
+        api_key=api_key or None,
+        base_url=base_url or None,
+    )
+    out_path = save_yaml(config, Path(filename))
+    rendered = yaml.safe_dump(config, sort_keys=False, allow_unicode=True)
+    return config, str(out_path), rendered
+
+
+@app.post('/generate', response_class=HTMLResponse)
 def generate(
     request: str = Form(...),
     provider: str = Form(DEFAULT_PROVIDER),
     model: str = Form(DEFAULT_MODEL),
-    api_key: str = Form(""),
-    base_url: str = Form(""),
-    base_yaml: str = Form(""),
-    filename: str = Form("generated_config.yaml"),
-) -> JSONResponse:
-    base_config = yaml.safe_load(base_yaml) if base_yaml.strip() else None
-
+    api_key: str = Form(''),
+    base_url: str = Form(''),
+    base_yaml: str = Form(''),
+    filename: str = Form('generated_config.yaml'),
+) -> str:
     try:
-        config = generate_config(
-            request,
-            base_config,
-            model=model,
+        _, out_path, rendered = _run_generation(
+            request=request,
             provider=provider,
-            api_key=api_key or None,
-            base_url=base_url or None,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            base_yaml=base_yaml,
+            filename=filename,
         )
-        out_path = save_yaml(config, Path(filename))
-        rendered = yaml.safe_dump(config, sort_keys=False, allow_unicode=True)
+        return f"<pre>{rendered}</pre><p>Saved to: {out_path}</p><p><a href='/'>Back</a></p>"
+    except Exception as exc:  # noqa: BLE001
+        return f"<p>Error: {exc}</p><p><a href='/'>Back</a></p>"
+
+
+@app.post('/api/generate')
+def api_generate(
+    request: str = Form(...),
+    provider: str = Form(DEFAULT_PROVIDER),
+    model: str = Form(DEFAULT_MODEL),
+    api_key: str = Form(''),
+    base_url: str = Form(''),
+    base_yaml: str = Form(''),
+    filename: str = Form('generated_config.yaml'),
+) -> JSONResponse:
+    try:
+        _, out_path, rendered = _run_generation(
+            request=request,
+            provider=provider,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            base_yaml=base_yaml,
+            filename=filename,
+        )
         result_id = str(uuid4())
         GENERATED_RESULTS[result_id] = {
-            "rendered": rendered,
-            "saved_to": str(out_path),
-            "created_at": datetime.now().isoformat(timespec="seconds"),
+            'rendered': rendered,
+            'saved_to': out_path,
+            'created_at': datetime.now().isoformat(timespec='seconds'),
         }
-        return JSONResponse(
-            {
-                "ok": True,
-                "saved_to": str(out_path),
-                "result_id": result_id,
-            }
-        )
+        return JSONResponse({'ok': True, 'saved_to': out_path, 'result_id': result_id})
     except Exception as exc:  # noqa: BLE001
-        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({'ok': False, 'error': str(exc)}, status_code=500)
 
 
-@app.get("/result/{result_id}", response_class=HTMLResponse)
+@app.get('/result/{result_id}', response_class=HTMLResponse)
 def result(result_id: str) -> str:
     payload = GENERATED_RESULTS.get(result_id)
     if payload is None:
