@@ -99,7 +99,7 @@ python solver_yaml_agent.py --serve --host 0.0.0.0 --port 8000
 ```
 Open `http://localhost:8000`.
 
-In GUI you can enter any provider name, set model/API key/base URL, and watch generation in real-time as tokens stream into a chat-like interface. The final YAML is saved automatically.
+In GUI you can enter any provider name, set model/API key/base URL, and watch generation in real-time as tokens stream into a chat-like interface. Enter sends request (Shift+Enter adds newline), request box clears after send, and compact one-column layout is suitable for plugin-style embedded windows. The final YAML is saved automatically.
 
 ## Notes
 - For Ollama, make sure local service is running and model is pulled.

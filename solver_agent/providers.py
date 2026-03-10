@@ -43,7 +43,7 @@ def stream_ollama(prompt: str, model: str = DEFAULT_MODEL, base_url: str = OLLAM
     payload = {"model": model, "prompt": prompt, "stream": True}
     with requests.post(base_url, json=payload, timeout=600, stream=True) as response:
         response.raise_for_status()
-        for line in response.iter_lines(decode_unicode=True):
+        for line in response.iter_lines(chunk_size=1, decode_unicode=True):
             if not line:
                 continue
             data = json.loads(line)
@@ -87,7 +87,7 @@ def stream_openai_compatible(prompt: str, model: str, api_key: str, base_url: st
         stream=True,
     ) as response:
         response.raise_for_status()
-        for line in response.iter_lines(decode_unicode=True):
+        for line in response.iter_lines(chunk_size=1, decode_unicode=True):
             if not line or not line.startswith("data:"):
                 continue
             content = line[5:].strip()
@@ -146,7 +146,7 @@ def stream_anthropic(prompt: str, model: str, api_key: str, base_url: str = "htt
         stream=True,
     ) as response:
         response.raise_for_status()
-        for line in response.iter_lines(decode_unicode=True):
+        for line in response.iter_lines(chunk_size=1, decode_unicode=True):
             if not line or not line.startswith("data:"):
                 continue
             payload_text = line[5:].strip()
