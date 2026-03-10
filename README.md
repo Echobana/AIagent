@@ -8,7 +8,7 @@ Python AI agent that generates solver YAML configuration files from natural lang
   - Anthropic Claude API
   - Any OpenAI-compatible API (including OpenAI, Perplexity, DeepSeek, Groq, OpenRouter, Together, Fireworks, and custom endpoints)
 - CLI via `argparse`
-- Simple web GUI via FastAPI (for minimizing CLI usage)
+- Chat-like web GUI via FastAPI with real-time token streaming
 - YAML schema validation (core required fields)
 - Supports partial updates by providing a base YAML config
 - Saves generated output to `.yaml`
@@ -99,7 +99,7 @@ python solver_yaml_agent.py --serve --host 0.0.0.0 --port 8000
 ```
 Open `http://localhost:8000`.
 
-In GUI you can enter any provider name, choose a known one from suggestions, set model/API key/base URL, and generate YAML without CLI arguments.
+In GUI you can enter any provider name, set model/API key/base URL, and watch generation in real-time as tokens stream into a chat-like interface. The final YAML is saved automatically.
 
 ## Notes
 - For Ollama, make sure local service is running and model is pulled.

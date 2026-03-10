@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterator, Optional
 
 import yaml
 from pydantic import ValidationError
 
 from solver_agent.examples import EXAMPLE_1, EXAMPLE_2
-from solver_agent.providers import DEFAULT_MODEL, DEFAULT_PROVIDER, query_model
+from solver_agent.providers import DEFAULT_MODEL, DEFAULT_PROVIDER, query_model, query_model_stream
 from solver_agent.schema import SolverConfig
 
 
@@ -50,16 +50,7 @@ def extract_yaml(text: str) -> str:
     return text.strip()
 
 
-def generate_config(
-    user_request: str,
-    base_config: Optional[Dict[str, Any]],
-    model: str = DEFAULT_MODEL,
-    provider: str = DEFAULT_PROVIDER,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
-) -> Dict[str, Any]:
-    prompt = build_prompt(user_request, base_config)
-    raw = query_model(prompt, provider=provider, model=model, api_key=api_key, base_url=base_url)
+def _parse_and_validate(raw: str) -> Dict[str, Any]:
     text = extract_yaml(raw)
 
     if text.startswith("CLARIFICATION:"):
@@ -75,6 +66,42 @@ def generate_config(
         raise ValueError(f"Generated YAML failed schema validation:\n{exc}") from exc
 
     return parsed
+
+
+def generate_config(
+    user_request: str,
+    base_config: Optional[Dict[str, Any]],
+    model: str = DEFAULT_MODEL,
+    provider: str = DEFAULT_PROVIDER,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    prompt = build_prompt(user_request, base_config)
+    raw = query_model(prompt, provider=provider, model=model, api_key=api_key, base_url=base_url)
+    return _parse_and_validate(raw)
+
+
+def generate_config_stream(
+    user_request: str,
+    base_config: Optional[Dict[str, Any]],
+    model: str = DEFAULT_MODEL,
+    provider: str = DEFAULT_PROVIDER,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Iterator[str]:
+    prompt = build_prompt(user_request, base_config)
+    chunks: list[str] = []
+    for chunk in query_model_stream(prompt, provider=provider, model=model, api_key=api_key, base_url=base_url):
+        chunks.append(chunk)
+        yield chunk
+
+    if not chunks:
+        raise ValueError("Model returned an empty response.")
+
+
+def parse_streamed_config(chunks: list[str]) -> Dict[str, Any]:
+    raw = "".join(chunks)
+    return _parse_and_validate(raw)
 
 
 def save_yaml(config: Dict[str, Any], output_path: Path) -> Path:
