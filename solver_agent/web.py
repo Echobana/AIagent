@@ -61,6 +61,13 @@ def index() -> str:
         const requestField = document.getElementById('request');
 
         form.addEventListener('submit', () => {{
+          const hiddenRequest = document.createElement('input');
+          hiddenRequest.type = 'hidden';
+          hiddenRequest.name = 'request';
+          hiddenRequest.value = requestField.value;
+          form.appendChild(hiddenRequest);
+
+          requestField.removeAttribute('name');
           requestField.value = '';
         }});
 
