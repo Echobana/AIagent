@@ -10,7 +10,7 @@ import yaml
 from pydantic import ValidationError
 
 from solver_agent.examples import EXAMPLE_1, EXAMPLE_2
-from solver_agent.ollama_client import query_ollama
+from solver_agent.providers import DEFAULT_MODEL, DEFAULT_PROVIDER, query_model
 from solver_agent.schema import SolverConfig
 
 
@@ -50,9 +50,16 @@ def extract_yaml(text: str) -> str:
     return text.strip()
 
 
-def generate_config(user_request: str, base_config: Optional[Dict[str, Any]], model: str) -> Dict[str, Any]:
+def generate_config(
+    user_request: str,
+    base_config: Optional[Dict[str, Any]],
+    model: str = DEFAULT_MODEL,
+    provider: str = DEFAULT_PROVIDER,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Dict[str, Any]:
     prompt = build_prompt(user_request, base_config)
-    raw = query_ollama(prompt, model=model)
+    raw = query_model(prompt, provider=provider, model=model, api_key=api_key, base_url=base_url)
     text = extract_yaml(raw)
 
     if text.startswith("CLARIFICATION:"):
