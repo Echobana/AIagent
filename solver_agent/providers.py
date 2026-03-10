@@ -69,7 +69,7 @@ def query_anthropic(prompt: str, model: str, api_key: str, base_url: str = "http
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    response = requests.post(f"{base_url.rstrip('/')}/v1/messages", json=payload, headers=headers, timeout=180)
+    response = requests.post(f"{base_url.rstrip('/')}/v1/messages", json=payload, headers=headers, timeout=600)
     response.raise_for_status()
     data = response.json()
     content = data.get("content", [])
